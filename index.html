@@ -133,4 +133,35 @@ function startGame() {
     select.innerHTML = "";
 
     players.forEach((p, i) => {
-        const op
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = p.name;
+        select.appendChild(option);
+    });
+
+    document.getElementById("game").style.display = "block";
+}
+
+function getShooter() {
+    return document.getElementById("shooter").value;
+}
+
+function miss() {
+    players[getShooter()].lives -= 1;
+}
+
+function pot() {
+    // no life change
+}
+
+function blackBall() {
+    players[getShooter()].lives += 1;
+}
+
+// start with two players
+addPlayer();
+addPlayer();
+</script>
+
+</body>
+</html>
