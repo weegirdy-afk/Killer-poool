@@ -2,67 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Killer Pool</title>
 
 <style>
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-        background: #111;
-        color: #fff;
-        margin: 0;
-        padding: 16px;
-        text-align: center;
-    }
+body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding: 16px;
+}
 
-    h1 {
-        margin-bottom: 10px;
-    }
+input, button, select {
+    width: 90%;
+    max-width: 280px;
+    padding: 12px;
+    margin: 6px 0;
+    font-size: 18px;
+    border-radius: 8px;
+    border: none;
+}
 
-    input {
-        width: 90%;
-        max-width: 260px;
-        padding: 12px;
-        margin: 6px 0;
-        font-size: 18px;
-        border-radius: 8px;
-        border: none;
-        text-align: center;
-    }
+button {
+    font-weight: bold;
+    cursor: pointer;
+}
 
-    button {
-        width: 90%;
-        max-width: 260px;
-        padding: 14px;
-        margin: 10px auto;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 10px;
-        border: none;
-        background: #2ecc71;
-        color: #000;
-    }
+.secondary { background: #3498db; }
+.play { background: #2ecc71; }
+.miss { background: #e67e22; }
+.pot { background: #1abc9c; }
+.black { background: #e74c3c; color: #fff; }
 
-    button.secondary {
-        background: #3498db;
-    }
+.player {
+    margin: 10px 0;
+    font-size: 22px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: deal 0.5s ease forwards;
+}
 
-    #playerList div {
-        margin-bottom: 8px;
+@keyframes deal {
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
-
-    #results {
-        margin-top: 20px;
-        font-size: 22px;
-    }
-
-    .card {
-        font-size: 34px;
-        display: block;
-        margin-top: 6px;
-    }
+}
 </style>
 </head>
 
@@ -77,53 +63,74 @@
 
 <div id="results"></div>
 
+<button class="play" onclick="startGame()">▶️ Play Game</button>
+
+<div id="game" style="display:none;">
+    <h2>Game On</h2>
+
+    <select id="shooter"></select>
+
+    <button class="miss" onclick="miss()">❌ Miss</button>
+    <button class="pot" onclick="pot()">🎯 Pot</button>
+    <button class="black" onclick="blackBall()">⚫ Black Ball</button>
+</div>
+
 <script>
-const deck = [
-    "A♠","2♠","3♠","4♠","5♠","6♠","7♠","8♠","9♠","10♠","J♠","Q♠","K♠",
-    "A♥","2♥","3♥","4♥","5♥","6♥","7♥","8♥","9♥","10♥","J♥","Q♥","K♥",
-    "A♦","2♦","3♦","4♦","5♦","6♦","7♦","8♦","9♦","10♦","J♦","Q♦","K♦",
-    "A♣","2♣","3♣","4♣","5♣","6♣","7♣","8♣","9♣","10♣","J♣","Q♣","K♣"
-];
+const baseDeck = ["A","K","Q","J","10","9","8","7","6","5","4","3","2"];
+let deck = [];
+let players = [];
+
+function shuffleDeck() {
+    deck = [...baseDeck];
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+}
 
 function addPlayer() {
-    const div = document.createElement("div");
-    div.innerHTML = `
-        <input placeholder="Player name">
-        <input placeholder="Card (optional)">
-    `;
-    document.getElementById("playerList").appendChild(div);
+    if (document.querySelectorAll("#playerList input").length >= 13) {
+        alert("Maximum 13 players");
+        return;
+    }
+    const input = document.createElement("input");
+    input.placeholder = "Player name";
+    document.getElementById("playerList").appendChild(input);
 }
 
 function drawCards() {
-    let remainingDeck = [...deck];
-    let resultHTML = "<h2>Results</h2>";
+    players = [];
+    shuffleDeck();
+    document.getElementById("results").innerHTML = "<h2>Dealing Cards…</h2>";
 
-    document.querySelectorAll("#playerList div").forEach(p => {
-        const name = p.children[0].value.trim();
-        let chosen = p.children[1].value.trim().toUpperCase();
+    const inputs = [...document.querySelectorAll("#playerList input")];
+    let delay = 0;
 
+    inputs.forEach((input, i) => {
+        const name = input.value.trim();
         if (!name) return;
 
-        let card;
-        if (chosen && remainingDeck.includes(chosen)) {
-            card = chosen;
-            remainingDeck.splice(remainingDeck.indexOf(card), 1);
-        } else {
-            const rand = Math.floor(Math.random() * remainingDeck.length);
-            card = remainingDeck[rand];
-            remainingDeck.splice(rand, 1);
-        }
+        if (deck.length === 0) shuffleDeck();
+        const card = deck.pop();
 
-        resultHTML += `<div>${name}<span class="card">${card}</span></div>`;
+        players.push({ name, card, lives: 1 });
+
+        setTimeout(() => {
+            const div = document.createElement("div");
+            div.className = "player";
+            div.textContent = `${name} — ${card}`;
+            document.getElementById("results").appendChild(div);
+        }, delay);
+
+        delay += 400;
     });
-
-    document.getElementById("results").innerHTML = resultHTML;
 }
 
-// Start with two players
-addPlayer();
-addPlayer();
-</script>
+function startGame() {
+    if (players.length === 0) return;
 
-</body>
-</html>
+    const select = document.getElementById("shooter");
+    select.innerHTML = "";
+
+    players.forEach((p, i) => {
+        const op
